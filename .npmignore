@@ -1,0 +1,15 @@
+src/
+tests/
+*.ts
+!dist/**/*.d.ts
+tsconfig.json
+tsconfig.build.json
+build.ts
+.gitignore
+bun.lockb
+node_modules/
+.env
+.env.*
+*.log
+.DS_Store
+
