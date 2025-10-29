@@ -4,7 +4,7 @@ export interface TOSClientOptions {
   region: string
   endpoint: string
   accessKeyId: string
-  secretAccessKey: string
+  accessKeySecret: string
   debug?: boolean
 }
 
@@ -32,7 +32,7 @@ export interface DownloadOptions {
  *   region: 'cn-beijing',
  *   endpoint: 'tos-cn-beijing.volces.com',
  *   accessKeyId: 'your-access-key-id',
- *   secretAccessKey: 'your-secret-access-key'
+ *   accessKeySecret: 'your-secret-access-key'
  * })
  * 
  * // 上传文件
@@ -97,7 +97,7 @@ export class TOSClient {
       region: this.options.region,
       endpoint: this.options.endpoint,
       accessKeyId: this.options.accessKeyId,
-      secretAccessKey: this.options.secretAccessKey,
+      accessKeySecret: this.options.accessKeySecret,
       contentType,
       contentSha256,
       debug: this.options.debug
@@ -137,7 +137,7 @@ export class TOSClient {
       region: this.options.region,
       endpoint: this.options.endpoint,
       accessKeyId: this.options.accessKeyId,
-      secretAccessKey: this.options.secretAccessKey,
+      accessKeySecret: this.options.accessKeySecret,
       contentSha256: 'UNSIGNED-PAYLOAD',
       debug: this.options.debug
     })
@@ -171,7 +171,7 @@ export class TOSClient {
       region: this.options.region,
       endpoint: this.options.endpoint,
       accessKeyId: this.options.accessKeyId,
-      secretAccessKey: this.options.secretAccessKey,
+      accessKeySecret: this.options.accessKeySecret,
       contentSha256: 'UNSIGNED-PAYLOAD',
       debug: this.options.debug
     })
@@ -205,7 +205,7 @@ export class TOSClient {
         region: this.options.region,
         endpoint: this.options.endpoint,
         accessKeyId: this.options.accessKeyId,
-        secretAccessKey: this.options.secretAccessKey,
+        accessKeySecret: this.options.accessKeySecret,
         contentSha256: 'UNSIGNED-PAYLOAD',
         debug: this.options.debug
       })

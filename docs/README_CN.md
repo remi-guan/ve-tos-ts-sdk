@@ -51,7 +51,7 @@ const client = new TOSClient({
   region: 'cn-beijing',
   endpoint: 'tos-cn-beijing.volces.com',
   accessKeyId: '你的访问密钥ID',
-  secretAccessKey: '你的访问密钥'
+  accessKeySecret: '你的访问密钥'
 })
 
 // 上传文件
@@ -85,7 +85,7 @@ new TOSClient(options: TOSClientOptions)
 - `region` (string): TOS 区域（例如：'cn-beijing', 'cn-shanghai'）
 - `endpoint` (string): TOS 端点（例如：'tos-cn-beijing.volces.com'）
 - `accessKeyId` (string): 你的 TOS 访问密钥 ID
-- `secretAccessKey` (string): 你的 TOS 访问密钥
+- `accessKeySecret` (string): 你的 TOS 访问密钥
 - `debug?` (boolean): 启用调试日志（默认：false）
 
 #### 方法
@@ -163,7 +163,7 @@ export default {
       region: env.TOS_REGION,
       endpoint: env.TOS_ENDPOINT,
       accessKeyId: env.TOS_ACCESS_KEY_ID,
-      secretAccessKey: env.TOS_SECRET_ACCESS_KEY
+      accessKeySecret: env.TOS_ACCESS_KEY_SECRET
     })
     
     // 从请求中上传文件
@@ -185,7 +185,7 @@ const client = new TOSClient({
   region: Deno.env.get('TOS_REGION')!,
   endpoint: Deno.env.get('TOS_ENDPOINT')!,
   accessKeyId: Deno.env.get('TOS_ACCESS_KEY_ID')!,
-  secretAccessKey: Deno.env.get('TOS_SECRET_ACCESS_KEY')!
+  accessKeySecret: Deno.env.get('TOS_ACCESS_KEY_SECRET')!
 })
 
 await client.upload('my-bucket', 'hello.txt', new TextEncoder().encode('你好！'))
@@ -201,7 +201,7 @@ const client = new TOSClient({
   region: process.env.TOS_REGION!,
   endpoint: process.env.TOS_ENDPOINT!,
   accessKeyId: process.env.TOS_ACCESS_KEY_ID!,
-  secretAccessKey: process.env.TOS_SECRET_ACCESS_KEY!
+  accessKeySecret: process.env.TOS_ACCESS_KEY_SECRET!
 })
 
 const buffer = await readFile('./file.txt')
@@ -217,7 +217,7 @@ const client = new TOSClient({
   region: Bun.env.TOS_REGION!,
   endpoint: Bun.env.TOS_ENDPOINT!,
   accessKeyId: Bun.env.TOS_ACCESS_KEY_ID!,
-  secretAccessKey: Bun.env.TOS_SECRET_ACCESS_KEY!
+  accessKeySecret: Bun.env.TOS_ACCESS_KEY_SECRET!
 })
 
 const file = Bun.file('./file.txt')
@@ -235,7 +235,7 @@ const client = new TOSClient({
   region: process.env.TOS_REGION!,
   endpoint: process.env.TOS_ENDPOINT!,
   accessKeyId: process.env.TOS_ACCESS_KEY_ID!,
-  secretAccessKey: process.env.TOS_SECRET_ACCESS_KEY!
+  accessKeySecret: process.env.TOS_ACCESS_KEY_SECRET!
 })
 ```
 
@@ -245,14 +245,14 @@ const client = new TOSClient({
 
 ```bash
 wrangler secret put TOS_ACCESS_KEY_ID
-wrangler secret put TOS_SECRET_ACCESS_KEY
+wrangler secret put TOS_ACCESS_KEY_SECRET
 ```
 
 ### ⚠️ 重要：浏览器安全警告
 
 **不要在浏览器中直接使用你的 TOS 凭证！**
 
-虽然这个 SDK 在技术上兼容浏览器（使用 Web APIs），但**在浏览器代码中暴露你的 `accessKeyId` 和 `secretAccessKey` 是极其危险的**：
+虽然这个 SDK 在技术上兼容浏览器（使用 Web APIs），但**在浏览器代码中暴露你的 `accessKeyId` 和 `accessKeySecret` 是极其危险的**：
 
 - ❌ 你的凭证会在浏览器的 DevTools 中可见
 - ❌ 任何人都可以窃取和滥用你的凭证
@@ -268,7 +268,7 @@ app.post('/api/upload', async (req, res) => {
     region: process.env.TOS_REGION!,
     endpoint: process.env.TOS_ENDPOINT!,
     accessKeyId: process.env.TOS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.TOS_SECRET_ACCESS_KEY!
+    accessKeySecret: process.env.TOS_ACCESS_KEY_SECRET!
   })
   
   const file = req.file // 来自 multer 或类似中间件

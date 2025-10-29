@@ -51,7 +51,7 @@ const client = new TOSClient({
   region: 'cn-beijing',
   endpoint: 'tos-cn-beijing.volces.com',
   accessKeyId: 'your-access-key-id',
-  secretAccessKey: 'your-secret-access-key'
+  accessKeySecret: 'your-secret-access-key'
 })
 
 // Upload a file
@@ -85,7 +85,7 @@ new TOSClient(options: TOSClientOptions)
 - `region` (string): TOS region (e.g., 'cn-beijing', 'cn-shanghai')
 - `endpoint` (string): TOS endpoint (e.g., 'tos-cn-beijing.volces.com')
 - `accessKeyId` (string): Your TOS access key ID
-- `secretAccessKey` (string): Your TOS secret access key
+- `accessKeySecret` (string): Your TOS secret access key
 - `debug?` (boolean): Enable debug logging (default: false)
 
 #### Methods
@@ -163,7 +163,7 @@ export default {
       region: env.TOS_REGION,
       endpoint: env.TOS_ENDPOINT,
       accessKeyId: env.TOS_ACCESS_KEY_ID,
-      secretAccessKey: env.TOS_SECRET_ACCESS_KEY
+      accessKeySecret: env.TOS_ACCESS_KEY_SECRET
     })
     
     // Upload file from request
@@ -185,7 +185,7 @@ const client = new TOSClient({
   region: Deno.env.get('TOS_REGION')!,
   endpoint: Deno.env.get('TOS_ENDPOINT')!,
   accessKeyId: Deno.env.get('TOS_ACCESS_KEY_ID')!,
-  secretAccessKey: Deno.env.get('TOS_SECRET_ACCESS_KEY')!
+  accessKeySecret: Deno.env.get('TOS_ACCESS_KEY_SECRET')!
 })
 
 await client.upload('my-bucket', 'hello.txt', new TextEncoder().encode('Hello!'))
@@ -201,7 +201,7 @@ const client = new TOSClient({
   region: process.env.TOS_REGION!,
   endpoint: process.env.TOS_ENDPOINT!,
   accessKeyId: process.env.TOS_ACCESS_KEY_ID!,
-  secretAccessKey: process.env.TOS_SECRET_ACCESS_KEY!
+  accessKeySecret: process.env.TOS_ACCESS_KEY_SECRET!
 })
 
 const buffer = await readFile('./file.txt')
@@ -217,7 +217,7 @@ const client = new TOSClient({
   region: Bun.env.TOS_REGION!,
   endpoint: Bun.env.TOS_ENDPOINT!,
   accessKeyId: Bun.env.TOS_ACCESS_KEY_ID!,
-  secretAccessKey: Bun.env.TOS_SECRET_ACCESS_KEY!
+  accessKeySecret: Bun.env.TOS_ACCESS_KEY_SECRET!
 })
 
 const file = Bun.file('./file.txt')
@@ -235,7 +235,7 @@ const client = new TOSClient({
   region: process.env.TOS_REGION!,
   endpoint: process.env.TOS_ENDPOINT!,
   accessKeyId: process.env.TOS_ACCESS_KEY_ID!,
-  secretAccessKey: process.env.TOS_SECRET_ACCESS_KEY!
+  accessKeySecret: process.env.TOS_ACCESS_KEY_SECRET!
 })
 ```
 
@@ -245,14 +245,14 @@ Use Wrangler secrets:
 
 ```bash
 wrangler secret put TOS_ACCESS_KEY_ID
-wrangler secret put TOS_SECRET_ACCESS_KEY
+wrangler secret put TOS_ACCESS_KEY_SECRET
 ```
 
 ### ⚠️ CRITICAL: Browser Security Warning
 
 **DO NOT use this SDK directly in the browser with your TOS credentials!**
 
-While this SDK is technically compatible with browsers (uses Web APIs), **exposing your `accessKeyId` and `secretAccessKey` in browser code is extremely dangerous**:
+While this SDK is technically compatible with browsers (uses Web APIs), **exposing your `accessKeyId` and `accessKeySecret` in browser code is extremely dangerous**:
 
 - ❌ Your credentials will be visible in the browser's DevTools
 - ❌ Anyone can steal and abuse your credentials
@@ -268,7 +268,7 @@ app.post('/api/upload', async (req, res) => {
     region: process.env.TOS_REGION!,
     endpoint: process.env.TOS_ENDPOINT!,
     accessKeyId: process.env.TOS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.TOS_SECRET_ACCESS_KEY!
+    accessKeySecret: process.env.TOS_ACCESS_KEY_SECRET!
   })
   
   const file = req.file // from multer or similar

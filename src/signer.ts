@@ -16,7 +16,7 @@ export interface TOSSignOptions {
   region: string
   endpoint: string
   accessKeyId: string
-  secretAccessKey: string
+  accessKeySecret: string
   contentType?: string
   contentSha256?: string
   date?: Date
@@ -97,7 +97,7 @@ export async function signTOSRequest(options: TOSSignOptions): Promise<Headers> 
     key,
     region,
     accessKeyId,
-    secretAccessKey,
+    accessKeySecret,
     contentType = 'application/octet-stream',
     contentSha256,
     date = new Date(),
@@ -156,7 +156,7 @@ export async function signTOSRequest(options: TOSSignOptions): Promise<Headers> 
   }
   
   // 计算签名密钥
-  const kDate = await hmacSha256(secretAccessKey, dates.short)
+  const kDate = await hmacSha256(accessKeySecret, dates.short)
   const kRegion = await hmacSha256(kDate, region)
   const kService = await hmacSha256(kRegion, 'tos')
   const kSigning = await hmacSha256(kService, 'request')

@@ -6,12 +6,12 @@ const config = {
   region: process.env.TOS_REGION || 'cn-shanghai',
   endpoint: process.env.TOS_ENDPOINT || 'tos-cn-shanghai.volces.com',
   accessKeyId: process.env.TOS_ACCESS_KEY_ID || '',
-  secretAccessKey: process.env.TOS_SECRET_ACCESS_KEY || '',
+  accessKeySecret: process.env.TOS_ACCESS_KEY_SECRET || '',
   bucket: process.env.TOS_BUCKET || 'test-bucket'
 }
 
 // 如果没有配置环境变量，跳过测试
-const shouldSkip = !config.accessKeyId || !config.secretAccessKey
+const shouldSkip = !config.accessKeyId || !config.accessKeySecret
 
 describe('TOSClient', () => {
   let client: TOSClient
@@ -21,13 +21,13 @@ describe('TOSClient', () => {
   beforeAll(() => {
     if (shouldSkip) {
       console.warn('⚠️  Skipping tests: TOS credentials not provided')
-      console.warn('   Set environment variables: TOS_REGION, TOS_ENDPOINT, TOS_ACCESS_KEY_ID, TOS_SECRET_ACCESS_KEY, TOS_BUCKET')
+      console.warn('   Set environment variables: TOS_REGION, TOS_ENDPOINT, TOS_ACCESS_KEY_ID, TOS_ACCESS_KEY_SECRET, TOS_BUCKET')
     } else {
       client = new TOSClient({
         region: config.region,
         endpoint: config.endpoint,
         accessKeyId: config.accessKeyId,
-        secretAccessKey: config.secretAccessKey,
+        accessKeySecret: config.accessKeySecret,
         debug: true
       })
     }
@@ -97,7 +97,7 @@ describe('TOSClient - Different data types', () => {
         region: config.region,
         endpoint: config.endpoint,
         accessKeyId: config.accessKeyId,
-        secretAccessKey: config.secretAccessKey
+        accessKeySecret: config.accessKeySecret
       })
     }
   })

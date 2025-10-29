@@ -9,7 +9,7 @@ describe('signTOSRequest', () => {
     region: 'cn-beijing',
     endpoint: 'tos-cn-beijing.volces.com',
     accessKeyId: 'test-access-key',
-    secretAccessKey: 'test-secret-key',
+    accessKeySecret: 'test-secret-key',
     contentType: 'text/plain',
     contentSha256: 'test-sha256'
   }
