@@ -20,6 +20,7 @@ export interface TOSSignOptions {
   contentType?: string
   contentSha256?: string
   date?: Date
+  customHeaders?: Record<string, string>
   debug?: boolean
 }
 
@@ -100,6 +101,7 @@ export async function signTOSRequest(options: TOSSignOptions): Promise<Headers> 
     accessKeySecret,
     contentType = 'application/octet-stream',
     contentSha256,
+    customHeaders = {},
     date = new Date(),
     debug = false
   } = options
@@ -111,14 +113,28 @@ export async function signTOSRequest(options: TOSSignOptions): Promise<Headers> 
   // 计算 content SHA256（如果没有提供）
   const payloadHash = contentSha256 || 'UNSIGNED-PAYLOAD'
   
-  // 构建 canonical headers
-  const canonicalHeaders = [
-    `host:${host}`,
-    `x-tos-content-sha256:${payloadHash}`,
-    `x-tos-date:${dates.long}`
-  ].join('\n')
+  // 收集所有需要签名的头部（包括自定义头部中的 x-tos-* 头）
+  const headersToSign: Record<string, string> = {
+    'host': host,
+    'x-tos-content-sha256': payloadHash,
+    'x-tos-date': dates.long
+  }
   
-  const signedHeaders = 'host;x-tos-content-sha256;x-tos-date'
+  // 添加自定义头部中的 x-tos-* 头到签名列表
+  for (const [key, value] of Object.entries(customHeaders)) {
+    const lowerKey = key.toLowerCase()
+    if (lowerKey.startsWith('x-tos-') && !headersToSign[lowerKey]) {
+      headersToSign[lowerKey] = value
+    }
+  }
+  
+  // 按字母顺序排序头部
+  const sortedHeaderKeys = Object.keys(headersToSign).sort()
+  const canonicalHeaders = sortedHeaderKeys
+    .map(k => `${k}:${headersToSign[k]}`)
+    .join('\n')
+  
+  const signedHeaders = sortedHeaderKeys.join(';')
   
   // 构建 canonical request
   const canonicalRequest = [
@@ -177,6 +193,11 @@ export async function signTOSRequest(options: TOSSignOptions): Promise<Headers> 
   headers.set('X-Tos-Content-Sha256', payloadHash)
   headers.set('Authorization', authorization)
   headers.set('Content-Type', contentType)
+  
+  // 添加所有自定义头部（包括非 x-tos-* 的头部，如 Cache-Control）
+  for (const [key, value] of Object.entries(customHeaders)) {
+    headers.set(key, value)
+  }
   
   return headers
 }

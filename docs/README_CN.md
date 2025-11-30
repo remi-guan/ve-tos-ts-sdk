@@ -58,10 +58,36 @@ const client = new TOSClient({
 const file = new Blob(['你好，TOS！'], { type: 'text/plain' })
 await client.upload('my-bucket', 'hello.txt', file)
 
+// 使用自定义头部上传（Cache-Control、元数据等）
+await client.upload('my-bucket', 'document.pdf', pdfBlob, {
+  contentType: 'application/pdf',
+  cacheControl: 'max-age=3600, public',
+  contentDisposition: 'attachment; filename="document.pdf"',
+  metadata: {
+    author: '张三',
+    version: '1.0'
+  }
+})
+
 // 下载文件
 const blob = await client.download('my-bucket', 'hello.txt')
 const text = await blob.text()
 console.log(text) // "你好，TOS！"
+
+// 更新对象元数据
+await client.updateMetadata('my-bucket', 'document.pdf', {
+  cacheControl: 'max-age=7200, public',
+  metadata: {
+    author: '李四',
+    version: '2.0'
+  }
+})
+
+// 复制对象
+await client.copy(
+  'source-bucket', 'source.txt',
+  'dest-bucket', 'dest.txt'
+)
 
 // 删除文件
 await client.delete('my-bucket', 'hello.txt')
@@ -100,12 +126,38 @@ new TOSClient(options: TOSClientOptions)
 - `data` (Blob | ArrayBuffer | Uint8Array): 要上传的数据
 - `options?` (UploadOptions): 可选的上传选项
   - `contentType?` (string): Content-Type 头
+  - `cacheControl?` (string): Cache-Control 头（例如：'max-age=3600, public'）
+  - `contentDisposition?` (string): Content-Disposition 头（例如：'attachment; filename="file.pdf"'）
+  - `contentEncoding?` (string): Content-Encoding 头（例如：'gzip'）
+  - `contentLanguage?` (string): Content-Language 头（例如：'zh-CN'）
+  - `expires?` (Date | string): Expires 头
+  - `metadata?` (Record<string, string>): 自定义元数据（会自动添加 x-tos-meta- 前缀）
+  - `headers?` (Record<string, string>): 任意额外的自定义 HTTP 头
 
 **返回：** `Promise<void>`
 
 ```typescript
+// 基础上传
 await client.upload('my-bucket', 'path/to/file.txt', blob, {
   contentType: 'text/plain'
+})
+
+// 使用缓存和元数据上传
+await client.upload('my-bucket', 'assets/logo.png', imageBlob, {
+  contentType: 'image/png',
+  cacheControl: 'max-age=31536000, public',
+  metadata: {
+    uploadedBy: 'user123',
+    version: '1.0'
+  }
+})
+
+// 使用自定义头上传
+await client.upload('my-bucket', 'file.txt', blob, {
+  headers: {
+    'x-tos-storage-class': 'STANDARD_IA',
+    'x-tos-server-side-encryption': 'AES256'
+  }
 })
 ```
 
@@ -117,11 +169,70 @@ await client.upload('my-bucket', 'path/to/file.txt', blob, {
 - `bucket` (string): 存储桶名称
 - `key` (string): 对象键（文件路径）
 - `options?` (DownloadOptions): 可选的下载选项
+  - `headers?` (Record<string, string>): 自定义 HTTP 头
 
 **返回：** `Promise<Blob>`
 
 ```typescript
 const blob = await client.download('my-bucket', 'path/to/file.txt')
+```
+
+##### `copy(sourceBucket, sourceKey, destinationBucket, destinationKey, options?)`
+
+从一个位置复制对象到另一个位置。
+
+**参数：**
+- `sourceBucket` (string): 源存储桶名称
+- `sourceKey` (string): 源对象键
+- `destinationBucket` (string): 目标存储桶名称
+- `destinationKey` (string): 目标对象键
+- `options?` (CopyOptions): 可选的复制选项
+  - `contentType?` (string): Content-Type 头
+  - `cacheControl?` (string): Cache-Control 头
+  - `contentDisposition?` (string): Content-Disposition 头
+  - `metadata?` (Record<string, string>): 自定义元数据
+  - `metadataDirective?` ('COPY' | 'REPLACE'): 元数据指令（默认：'COPY'）
+  - `headers?` (Record<string, string>): 自定义 HTTP 头
+
+**返回：** `Promise<void>`
+
+```typescript
+// 简单复制
+await client.copy('source-bucket', 'file.txt', 'dest-bucket', 'copy.txt')
+
+// 复制并替换元数据
+await client.copy('bucket', 'old.txt', 'bucket', 'new.txt', {
+  metadataDirective: 'REPLACE',
+  cacheControl: 'max-age=3600',
+  metadata: { version: '2.0' }
+})
+```
+
+##### `updateMetadata(bucket, key, options)`
+
+更新对象元数据（通过就地复制实现）。
+
+**参数：**
+- `bucket` (string): 存储桶名称
+- `key` (string): 对象键
+- `options` (CopyOptions): 元数据更新选项
+  - `cacheControl?` (string): Cache-Control 头
+  - `contentDisposition?` (string): Content-Disposition 头
+  - `contentType?` (string): Content-Type 头
+  - `metadata?` (Record<string, string>): 自定义元数据
+  - `headers?` (Record<string, string>): 自定义 HTTP 头
+
+**返回：** `Promise<void>`
+
+```typescript
+// 更新元数据
+await client.updateMetadata('my-bucket', 'file.txt', {
+  cacheControl: 'max-age=7200, public',
+  metadata: {
+    lastModifiedBy: 'user456',
+    version: '2.0'
+  }
+})
 ```
 
 ##### `delete(bucket, key)`

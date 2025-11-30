@@ -72,5 +72,34 @@ describe('signTOSRequest', () => {
     const dateHeader = headers.get('X-Tos-Date')
     expect(dateHeader).toContain('20250101T000000Z')
   })
+
+  test('should include custom headers', async () => {
+    const headers = await signTOSRequest({
+      ...testOptions,
+      customHeaders: {
+        'Cache-Control': 'max-age=3600',
+        'x-tos-meta-author': 'test-user'
+      }
+    })
+    
+    expect(headers.get('Cache-Control')).toBe('max-age=3600')
+    expect(headers.get('x-tos-meta-author')).toBe('test-user')
+    expect(headers.get('Authorization')).toContain('TOS4-HMAC-SHA256')
+  })
+
+  test('should sign x-tos-* custom headers', async () => {
+    const headers = await signTOSRequest({
+      ...testOptions,
+      customHeaders: {
+        'x-tos-meta-custom': 'value',
+        'x-tos-storage-class': 'STANDARD'
+      }
+    })
+    
+    expect(headers.get('x-tos-meta-custom')).toBe('value')
+    expect(headers.get('x-tos-storage-class')).toBe('STANDARD')
+    // x-tos-* headers should be included in the signature
+    expect(headers.get('Authorization')).toContain('TOS4-HMAC-SHA256')
+  })
 })
 

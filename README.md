@@ -58,10 +58,36 @@ const client = new TOSClient({
 const file = new Blob(['Hello, TOS!'], { type: 'text/plain' })
 await client.upload('my-bucket', 'hello.txt', file)
 
+// Upload with custom headers (Cache-Control, metadata, etc.)
+await client.upload('my-bucket', 'document.pdf', pdfBlob, {
+  contentType: 'application/pdf',
+  cacheControl: 'max-age=3600, public',
+  contentDisposition: 'attachment; filename="document.pdf"',
+  metadata: {
+    author: 'John Doe',
+    version: '1.0'
+  }
+})
+
 // Download a file
 const blob = await client.download('my-bucket', 'hello.txt')
 const text = await blob.text()
 console.log(text) // "Hello, TOS!"
+
+// Update object metadata
+await client.updateMetadata('my-bucket', 'document.pdf', {
+  cacheControl: 'max-age=7200, public',
+  metadata: {
+    author: 'Jane Doe',
+    version: '2.0'
+  }
+})
+
+// Copy object
+await client.copy(
+  'source-bucket', 'source.txt',
+  'dest-bucket', 'dest.txt'
+)
 
 // Delete a file
 await client.delete('my-bucket', 'hello.txt')
@@ -100,12 +126,38 @@ Upload data to TOS.
 - `data` (Blob | ArrayBuffer | Uint8Array): Data to upload
 - `options?` (UploadOptions): Optional upload options
   - `contentType?` (string): Content-Type header
+  - `cacheControl?` (string): Cache-Control header (e.g., 'max-age=3600, public')
+  - `contentDisposition?` (string): Content-Disposition header (e.g., 'attachment; filename="file.pdf"')
+  - `contentEncoding?` (string): Content-Encoding header (e.g., 'gzip')
+  - `contentLanguage?` (string): Content-Language header (e.g., 'en-US')
+  - `expires?` (Date | string): Expires header
+  - `metadata?` (Record<string, string>): Custom metadata (will be prefixed with x-tos-meta-)
+  - `headers?` (Record<string, string>): Any additional custom HTTP headers
 
 **Returns:** `Promise<void>`
 
 ```typescript
+// Basic upload
 await client.upload('my-bucket', 'path/to/file.txt', blob, {
   contentType: 'text/plain'
+})
+
+// Upload with caching and metadata
+await client.upload('my-bucket', 'assets/logo.png', imageBlob, {
+  contentType: 'image/png',
+  cacheControl: 'max-age=31536000, public',
+  metadata: {
+    uploadedBy: 'user123',
+    version: '1.0'
+  }
+})
+
+// Upload with custom headers
+await client.upload('my-bucket', 'file.txt', blob, {
+  headers: {
+    'x-tos-storage-class': 'STANDARD_IA',
+    'x-tos-server-side-encryption': 'AES256'
+  }
 })
 ```
 
@@ -117,11 +169,70 @@ Download data from TOS.
 - `bucket` (string): Bucket name
 - `key` (string): Object key (file path)
 - `options?` (DownloadOptions): Optional download options
+  - `headers?` (Record<string, string>): Custom HTTP headers
 
 **Returns:** `Promise<Blob>`
 
 ```typescript
 const blob = await client.download('my-bucket', 'path/to/file.txt')
+```
+
+##### `copy(sourceBucket, sourceKey, destinationBucket, destinationKey, options?)`
+
+Copy an object from one location to another.
+
+**Parameters:**
+- `sourceBucket` (string): Source bucket name
+- `sourceKey` (string): Source object key
+- `destinationBucket` (string): Destination bucket name
+- `destinationKey` (string): Destination object key
+- `options?` (CopyOptions): Optional copy options
+  - `contentType?` (string): Content-Type header
+  - `cacheControl?` (string): Cache-Control header
+  - `contentDisposition?` (string): Content-Disposition header
+  - `metadata?` (Record<string, string>): Custom metadata
+  - `metadataDirective?` ('COPY' | 'REPLACE'): Metadata directive (default: 'COPY')
+  - `headers?` (Record<string, string>): Custom HTTP headers
+
+**Returns:** `Promise<void>`
+
+```typescript
+// Simple copy
+await client.copy('source-bucket', 'file.txt', 'dest-bucket', 'copy.txt')
+
+// Copy with new metadata
+await client.copy('bucket', 'old.txt', 'bucket', 'new.txt', {
+  metadataDirective: 'REPLACE',
+  cacheControl: 'max-age=3600',
+  metadata: { version: '2.0' }
+})
+```
+
+##### `updateMetadata(bucket, key, options)`
+
+Update object metadata (implemented via in-place copy).
+
+**Parameters:**
+- `bucket` (string): Bucket name
+- `key` (string): Object key
+- `options` (CopyOptions): Metadata update options
+  - `cacheControl?` (string): Cache-Control header
+  - `contentDisposition?` (string): Content-Disposition header
+  - `contentType?` (string): Content-Type header
+  - `metadata?` (Record<string, string>): Custom metadata
+  - `headers?` (Record<string, string>): Custom HTTP headers
+
+**Returns:** `Promise<void>`
+
+```typescript
+// Update metadata
+await client.updateMetadata('my-bucket', 'file.txt', {
+  cacheControl: 'max-age=7200, public',
+  metadata: {
+    lastModifiedBy: 'user456',
+    version: '2.0'
+  }
+})
 ```
 
 ##### `delete(bucket, key)`
