@@ -446,9 +446,10 @@ export class TOSClient {
       queryParams['start-after'] = options.startAfter
     }
     
-    // 构建查询字符串
-    const queryString = Object.entries(queryParams)
-      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    // 构建查询字符串（必须按字母顺序排序！这是签名规范要求的）
+    const sortedKeys = Object.keys(queryParams).sort()
+    const queryString = sortedKeys
+      .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(queryParams[key] as string)}`)
       .join('&')
     
     // 构建自定义头部
@@ -481,16 +482,70 @@ export class TOSClient {
       throw new Error(`Failed to list objects in TOS: ${response.status} ${errorText}`)
     }
 
-    // 解析 XML 响应
-    const xmlText = await response.text()
-    return this.parseListObjectsResponse(xmlText)
+    // 解析响应（支持 JSON 和 XML 格式）
+    const responseText = await response.text()
+    return this.parseListObjectsResponse(responseText)
   }
 
   /**
-   * 解析 ListObjects XML 响应
+   * 解析 ListObjects 响应（支持 JSON 和 XML 格式）
    * @private
    */
-  private parseListObjectsResponse(xml: string): ListObjectsResult {
+  private parseListObjectsResponse(responseText: string): ListObjectsResult {
+    // 尝试解析 JSON（TOS 默认返回 JSON）
+    try {
+      const json = JSON.parse(responseText)
+      return this.parseListObjectsJSON(json)
+    } catch {
+      // 如果不是 JSON，尝试解析 XML
+      return this.parseListObjectsXML(responseText)
+    }
+  }
+
+  /**
+   * 解析 JSON 格式的 ListObjects 响应
+   * @private
+   */
+  private parseListObjectsJSON(json: {
+    Name?: string
+    Prefix?: string
+    KeyCount?: number
+    MaxKeys?: number
+    IsTruncated?: boolean
+    NextContinuationToken?: string
+    Contents?: Array<{
+      Key: string
+      LastModified: string
+      ETag: string
+      Size: number
+      StorageClass: string
+    }>
+    CommonPrefixes?: Array<{ Prefix: string }>
+  }): ListObjectsResult {
+    const objects: ObjectInfo[] = (json.Contents || []).map(item => ({
+      key: item.Key,
+      lastModified: new Date(item.LastModified),
+      etag: item.ETag.replace(/"/g, ''),
+      size: item.Size,
+      storageClass: item.StorageClass
+    }))
+
+    const commonPrefixes: string[] = (json.CommonPrefixes || []).map(p => p.Prefix)
+
+    return {
+      objects,
+      commonPrefixes,
+      isTruncated: json.IsTruncated || false,
+      nextContinuationToken: json.NextContinuationToken,
+      keyCount: json.KeyCount || objects.length
+    }
+  }
+
+  /**
+   * 解析 XML 格式的 ListObjects 响应
+   * @private
+   */
+  private parseListObjectsXML(xml: string): ListObjectsResult {
     const objects: ObjectInfo[] = []
     const commonPrefixes: string[] = []
     
