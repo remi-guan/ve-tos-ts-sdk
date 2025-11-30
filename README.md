@@ -89,6 +89,16 @@ await client.copy(
   'dest-bucket', 'dest.txt'
 )
 
+// List objects
+const result = await client.list('my-bucket', {
+  prefix: 'documents/',
+  maxKeys: 100
+})
+console.log(`Found ${result.keyCount} objects`)
+result.objects.forEach(obj => {
+  console.log(`- ${obj.key} (${obj.size} bytes)`)
+})
+
 // Delete a file
 await client.delete('my-bucket', 'hello.txt')
 
@@ -261,6 +271,59 @@ Check if an object exists in TOS.
 
 ```typescript
 const exists = await client.exists('my-bucket', 'path/to/file.txt')
+```
+
+##### `list(bucket, options?)`
+
+List objects in a bucket.
+
+**Parameters:**
+- `bucket` (string): Bucket name
+- `options?` (ListObjectsOptions): Optional list options
+  - `prefix?` (string): Prefix to filter objects
+  - `delimiter?` (string): Delimiter for grouping (e.g., '/' for directory-like structure)
+  - `maxKeys?` (number): Maximum number of objects to return (default: 1000, max: 1000)
+  - `continuationToken?` (string): Continuation token for pagination
+  - `startAfter?` (string): Start listing after this key
+  - `headers?` (Record<string, string>): Custom HTTP headers
+
+**Returns:** `Promise<ListObjectsResult>`
+
+```typescript
+// List all objects
+const result = await client.list('my-bucket')
+console.log(`Found ${result.keyCount} objects`)
+result.objects.forEach(obj => {
+  console.log(`${obj.key} - ${obj.size} bytes - ${obj.lastModified}`)
+})
+
+// List with prefix (like a folder)
+const docs = await client.list('my-bucket', {
+  prefix: 'documents/',
+  maxKeys: 100
+})
+
+// List with delimiter (directory-like structure)
+const folders = await client.list('my-bucket', {
+  prefix: 'uploads/',
+  delimiter: '/'
+})
+console.log('Folders:', folders.commonPrefixes)
+console.log('Files:', folders.objects.map(o => o.key))
+
+// Pagination
+let continuationToken: string | undefined
+do {
+  const result = await client.list('my-bucket', {
+    maxKeys: 1000,
+    continuationToken
+  })
+  
+  // Process result.objects
+  console.log(`Processing ${result.objects.length} objects`)
+  
+  continuationToken = result.nextContinuationToken
+} while (continuationToken)
 ```
 
 ## 🌍 Platform-Specific Examples

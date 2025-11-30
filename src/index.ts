@@ -7,7 +7,15 @@
  */
 
 export { TOSClient } from './client'
-export type { TOSClientOptions, UploadOptions, DownloadOptions, CopyOptions } from './client'
+export type { 
+  TOSClientOptions, 
+  UploadOptions, 
+  DownloadOptions, 
+  CopyOptions,
+  ListObjectsOptions,
+  ListObjectsResult,
+  ObjectInfo
+} from './client'
 export { signTOSRequest } from './signer'
 export type { TOSSignOptions } from './signer'
 

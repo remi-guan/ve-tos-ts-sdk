@@ -47,6 +47,47 @@ export interface CopyOptions {
   metadataDirective?: 'COPY' | 'REPLACE'
 }
 
+export interface ListObjectsOptions {
+  /** Prefix to filter objects */
+  prefix?: string
+  /** Delimiter for grouping (e.g., '/' for directory-like structure) */
+  delimiter?: string
+  /** Maximum number of objects to return (default: 1000, max: 1000) */
+  maxKeys?: number
+  /** Continuation token for pagination */
+  continuationToken?: string
+  /** Start listing after this key */
+  startAfter?: string
+  /** Custom HTTP headers to include in the request */
+  headers?: Record<string, string>
+}
+
+export interface ListObjectsResult {
+  /** List of objects */
+  objects: ObjectInfo[]
+  /** Common prefixes (directories when using delimiter) */
+  commonPrefixes: string[]
+  /** Whether the result is truncated */
+  isTruncated: boolean
+  /** Token for next page (if isTruncated is true) */
+  nextContinuationToken?: string
+  /** Total number of keys returned */
+  keyCount: number
+}
+
+export interface ObjectInfo {
+  /** Object key */
+  key: string
+  /** Last modified time */
+  lastModified: Date
+  /** ETag */
+  etag: string
+  /** Size in bytes */
+  size: number
+  /** Storage class */
+  storageClass: string
+}
+
 /**
  * 火山引擎 TOS 客户端
  * 
@@ -372,6 +413,139 @@ export class TOSClient {
       ...options,
       metadataDirective: 'REPLACE'
     })
+  }
+
+  /**
+   * 列举存储桶中的对象
+   * @param bucket 存储桶名称
+   * @param options 列举选项
+   * @returns 对象列表和分页信息
+   */
+  async list(
+    bucket: string,
+    options: ListObjectsOptions = {}
+  ): Promise<ListObjectsResult> {
+    // 构建查询参数
+    const queryParams: Record<string, string> = {
+      'list-type': '2' // 使用 ListObjectsV2
+    }
+    
+    if (options.prefix) {
+      queryParams['prefix'] = options.prefix
+    }
+    if (options.delimiter) {
+      queryParams['delimiter'] = options.delimiter
+    }
+    if (options.maxKeys) {
+      queryParams['max-keys'] = String(options.maxKeys)
+    }
+    if (options.continuationToken) {
+      queryParams['continuation-token'] = options.continuationToken
+    }
+    if (options.startAfter) {
+      queryParams['start-after'] = options.startAfter
+    }
+    
+    // 构建查询字符串
+    const queryString = Object.entries(queryParams)
+      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+      .join('&')
+    
+    // 构建自定义头部
+    const customHeaders: Record<string, string> = { ...options.headers }
+    
+    // 生成签名（注意：list 操作的 key 是空字符串，查询参数需要包含在签名中）
+    const headers = await signTOSRequest({
+      method: 'GET',
+      bucket,
+      key: '', // ListObjects 使用根路径
+      region: this.options.region,
+      endpoint: this.options.endpoint,
+      accessKeyId: this.options.accessKeyId,
+      accessKeySecret: this.options.accessKeySecret,
+      contentSha256: 'UNSIGNED-PAYLOAD',
+      customHeaders,
+      queryString, // 将查询参数传递给签名函数
+      debug: this.options.debug
+    })
+    
+    // 发送请求
+    const url = `https://${bucket}.${this.options.endpoint}/?${queryString}`
+    const response = await fetch(url, {
+      method: 'GET',
+      headers,
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Failed to list objects in TOS: ${response.status} ${errorText}`)
+    }
+
+    // 解析 XML 响应
+    const xmlText = await response.text()
+    return this.parseListObjectsResponse(xmlText)
+  }
+
+  /**
+   * 解析 ListObjects XML 响应
+   * @private
+   */
+  private parseListObjectsResponse(xml: string): ListObjectsResult {
+    const objects: ObjectInfo[] = []
+    const commonPrefixes: string[] = []
+    
+    // 提取 IsTruncated
+    const isTruncatedMatch = xml.match(/<IsTruncated>(\w+)<\/IsTruncated>/)
+    const isTruncated = isTruncatedMatch ? isTruncatedMatch[1] === 'true' : false
+    
+    // 提取 NextContinuationToken
+    const nextTokenMatch = xml.match(/<NextContinuationToken>([^<]+)<\/NextContinuationToken>/)
+    const nextContinuationToken = nextTokenMatch ? nextTokenMatch[1] : undefined
+    
+    // 提取 KeyCount
+    const keyCountMatch = xml.match(/<KeyCount>(\d+)<\/KeyCount>/)
+    const keyCount = keyCountMatch?.[1] ? parseInt(keyCountMatch[1], 10) : 0
+    
+    // 提取所有 <Contents> 块
+    const contentsRegex = /<Contents>([\s\S]*?)<\/Contents>/g
+    let match: RegExpExecArray | null
+    
+    while ((match = contentsRegex.exec(xml)) !== null) {
+      const content = match[1]
+      if (!content) continue
+      
+      const keyMatch = content.match(/<Key>([^<]*)<\/Key>/)
+      const lastModifiedMatch = content.match(/<LastModified>([^<]+)<\/LastModified>/)
+      const etagMatch = content.match(/<ETag>([^<]+)<\/ETag>/)
+      const sizeMatch = content.match(/<Size>(\d+)<\/Size>/)
+      const storageClassMatch = content.match(/<StorageClass>([^<]+)<\/StorageClass>/)
+      
+      if (keyMatch && keyMatch[1]) {
+        objects.push({
+          key: keyMatch[1],
+          lastModified: lastModifiedMatch?.[1] ? new Date(lastModifiedMatch[1]) : new Date(),
+          etag: etagMatch?.[1] ? etagMatch[1].replace(/"/g, '') : '',
+          size: sizeMatch?.[1] ? parseInt(sizeMatch[1], 10) : 0,
+          storageClass: storageClassMatch?.[1] || 'STANDARD'
+        })
+      }
+    }
+    
+    // 提取所有 <CommonPrefixes> 块
+    const prefixesRegex = /<CommonPrefixes>[\s\S]*?<Prefix>([^<]+)<\/Prefix>[\s\S]*?<\/CommonPrefixes>/g
+    while ((match = prefixesRegex.exec(xml)) !== null) {
+      if (match[1]) {
+        commonPrefixes.push(match[1])
+      }
+    }
+    
+    return {
+      objects,
+      commonPrefixes,
+      isTruncated,
+      nextContinuationToken,
+      keyCount
+    }
   }
 }
 

@@ -89,6 +89,16 @@ await client.copy(
   'dest-bucket', 'dest.txt'
 )
 
+// 列举对象
+const result = await client.list('my-bucket', {
+  prefix: 'documents/',
+  maxKeys: 100
+})
+console.log(`找到 ${result.keyCount} 个对象`)
+result.objects.forEach(obj => {
+  console.log(`- ${obj.key} (${obj.size} 字节)`)
+})
+
 // 删除文件
 await client.delete('my-bucket', 'hello.txt')
 
@@ -261,6 +271,59 @@ await client.delete('my-bucket', 'path/to/file.txt')
 
 ```typescript
 const exists = await client.exists('my-bucket', 'path/to/file.txt')
+```
+
+##### `list(bucket, options?)`
+
+列举存储桶中的对象。
+
+**参数：**
+- `bucket` (string): 存储桶名称
+- `options?` (ListObjectsOptions): 可选的列举选项
+  - `prefix?` (string): 用于过滤对象的前缀
+  - `delimiter?` (string): 用于分组的分隔符（例如：'/' 实现类似目录的结构）
+  - `maxKeys?` (number): 返回的最大对象数（默认：1000，最大：1000）
+  - `continuationToken?` (string): 用于分页的延续令牌
+  - `startAfter?` (string): 从此键之后开始列举
+  - `headers?` (Record<string, string>): 自定义 HTTP 头
+
+**返回：** `Promise<ListObjectsResult>`
+
+```typescript
+// 列举所有对象
+const result = await client.list('my-bucket')
+console.log(`找到 ${result.keyCount} 个对象`)
+result.objects.forEach(obj => {
+  console.log(`${obj.key} - ${obj.size} 字节 - ${obj.lastModified}`)
+})
+
+// 使用前缀列举（类似文件夹）
+const docs = await client.list('my-bucket', {
+  prefix: 'documents/',
+  maxKeys: 100
+})
+
+// 使用分隔符列举（类似目录结构）
+const folders = await client.list('my-bucket', {
+  prefix: 'uploads/',
+  delimiter: '/'
+})
+console.log('文件夹:', folders.commonPrefixes)
+console.log('文件:', folders.objects.map(o => o.key))
+
+// 分页
+let continuationToken: string | undefined
+do {
+  const result = await client.list('my-bucket', {
+    maxKeys: 1000,
+    continuationToken
+  })
+  
+  // 处理 result.objects
+  console.log(`处理 ${result.objects.length} 个对象`)
+  
+  continuationToken = result.nextContinuationToken
+} while (continuationToken)
 ```
 
 ## 🌍 平台特定示例

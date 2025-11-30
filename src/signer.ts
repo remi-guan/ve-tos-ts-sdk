@@ -21,6 +21,7 @@ export interface TOSSignOptions {
   contentSha256?: string
   date?: Date
   customHeaders?: Record<string, string>
+  queryString?: string
   debug?: boolean
 }
 
@@ -102,13 +103,14 @@ export async function signTOSRequest(options: TOSSignOptions): Promise<Headers> 
     contentType = 'application/octet-stream',
     contentSha256,
     customHeaders = {},
+    queryString = '',
     date = new Date(),
     debug = false
   } = options
   
   const dates = formatDate(date)
   const host = `${bucket}.${options.endpoint}`
-  const uri = `/${uriEncode(key, false)}`
+  const uri = key ? `/${uriEncode(key, false)}` : '/'
   
   // 计算 content SHA256（如果没有提供）
   const payloadHash = contentSha256 || 'UNSIGNED-PAYLOAD'
@@ -140,7 +142,7 @@ export async function signTOSRequest(options: TOSSignOptions): Promise<Headers> 
   const canonicalRequest = [
     method,
     uri,
-    '', // query string (empty for simple requests)
+    queryString, // 查询字符串
     canonicalHeaders,
     '', // empty line after headers
     signedHeaders,
@@ -192,7 +194,11 @@ export async function signTOSRequest(options: TOSSignOptions): Promise<Headers> 
   headers.set('X-Tos-Date', dates.long)
   headers.set('X-Tos-Content-Sha256', payloadHash)
   headers.set('Authorization', authorization)
-  headers.set('Content-Type', contentType)
+  
+  // 只在有内容的请求中设置 Content-Type
+  if (method === 'PUT' || method === 'POST') {
+    headers.set('Content-Type', contentType)
+  }
   
   // 添加所有自定义头部（包括非 x-tos-* 的头部，如 Cache-Control）
   for (const [key, value] of Object.entries(customHeaders)) {
